@@ -234,7 +234,7 @@ export async function setupPlugin({ config, global, jobs }) {
 
     // Setup a buffer to group events to be sent to RudderStack in the background at most every 3s
     global.buffer = createBuffer({
-        limit: 5 * 1024 * 1024, // 5mb max
+        limit: 0.1 * 1024 * 1024, // 100kb max
         timeoutSeconds: 60,
         onFlush: async (batch) => {
             await sendToRudder(
