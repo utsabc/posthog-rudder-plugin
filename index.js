@@ -237,6 +237,7 @@ export async function setupPlugin({ config, global, jobs }) {
         limit: 0.1 * 1024 * 1024, // 100kb max
         timeoutSeconds: 60,
         onFlush: async (batch) => {
+            console.log("Inside onFlush")
             await sendToRudder(
                 { batch, retriesPerformedSoFar: 0, batchId: Math.floor(Math.random() * 1000000) }, // This is the first time we're trying to send the payload
                 { global, jobs }
@@ -247,7 +248,6 @@ export async function setupPlugin({ config, global, jobs }) {
 
 // onEvent is used to export events without modifying them
 export async function onEvent(event, { global }) {
-    const rudderbatch = []
     let rudderPayload = {}
     // add const value props
     constructPayload(rudderPayload, event, constants, true)
@@ -272,17 +272,9 @@ export async function onEvent(event, { global }) {
         }
     })
 
+    console.log(`Inside onEvent payload ${rudderPayload}`)
     // Add event to the buffer which will flush in the background
-    // global.buffer.add(rudderPayload, JSON.stringify(rudderPayload).length)
-
-    rudderbatch.push(rudderPayload)
-
-    await jobs
-        .uploadBatchToRudder(
-            { rudderbatch, retriesPerformedSoFar: 0, batchId: Math.floor(Math.random() * 1000000) }, // This is the first time we're trying to send the payload
-            { global, jobs }
-        )
-        .runNow()
+    global.buffer.add(rudderPayload, JSON.stringify(rudderPayload).length)
 }
 
 async function sendToRudder(batch, { global, jobs }) {
@@ -291,19 +283,18 @@ async function sendToRudder(batch, { global, jobs }) {
             batch: batch.batch,
             sentAt: new Date().toISOString(),
         }
-        console.log(`Inside send to rudder batchi-id ${batch.batchId}`)
-        const res = await fetch(global.dataPlaneUrl, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...global.rudderAuthHeader.headers,
-            },
-            body: JSON.stringify(payload),
-            method: 'POST',
-        })
-        console.log('response status: ' + res.status)
-        const body = await res.text()
-        console.log('response: ' + res.statusText + ' ' + body)
-        console.log('is response ok: ', res.ok)
+        const res = await fetch(
+            global.dataPlaneUrl,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...global.rudderAuthHeader.headers,
+                },
+                body: JSON.stringify(payload),
+                method: 'POST'
+            }
+        )
+        console.log(`Response from fetch ${res}`)
         console.log(`Successfully uploaded events batch ${batch.batchId} of size ${batch.batch.length} to RudderStack`)
     } catch (err) {
         // Retry using exponential backoff based on how many retries were already performed
