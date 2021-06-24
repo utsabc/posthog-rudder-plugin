@@ -248,6 +248,7 @@ export async function setupPlugin({ config, global, jobs }) {
 
 // onEvent is used to export events without modifying them
 export async function onEvent(event, { global }) {
+    console.log("This is the begining of onEvent")
     let rudderPayload = {}
     // add const value props
     constructPayload(rudderPayload, event, constants, true)
