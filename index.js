@@ -247,7 +247,7 @@ export async function setupPlugin({ config, global, jobs }) {
 }
 
 // onEvent is used to export events without modifying them
-export async function onEvent(event, { global }) {
+export async function processEvent(event, { global }) {
     console.log("This is the begining of onEvent")
     let rudderPayload = {}
     // add const value props
@@ -276,6 +276,7 @@ export async function onEvent(event, { global }) {
     console.log(`Inside onEvent payload ${rudderPayload}`)
     // Add event to the buffer which will flush in the background
     global.buffer.add(rudderPayload, JSON.stringify(rudderPayload).length)
+    return event
 }
 
 async function sendToRudder(batch, { global, jobs }) {
