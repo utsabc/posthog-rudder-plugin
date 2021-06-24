@@ -247,7 +247,7 @@ export async function setupPlugin({ config, global, jobs }) {
 
 // onEvent is used to export events without modifying them
 export async function onEvent(event, { global }) {
-    const batch = []
+    const rudderbatch = []
     let rudderPayload = {}
     // add const value props
     constructPayload(rudderPayload, event, constants, true)
@@ -275,11 +275,14 @@ export async function onEvent(event, { global }) {
     // Add event to the buffer which will flush in the background
     // global.buffer.add(rudderPayload, JSON.stringify(rudderPayload).length)
 
-    batch.push(rudderPayload)
-    await sendToRudder(
-        { batch, retriesPerformedSoFar: 0, batchId: Math.floor(Math.random() * 1000000) }, // This is the first time we're trying to send the payload
-        { global, jobs }
-    )
+    rudderbatch.push(rudderPayload)
+
+    await jobs
+        .uploadBatchToRudder(
+            { rudderbatch, retriesPerformedSoFar: 0, batchId: Math.floor(Math.random() * 1000000) }, // This is the first time we're trying to send the payload
+            { global, jobs }
+        )
+        .runNow()
 }
 
 async function sendToRudder(batch, { global, jobs }) {
@@ -289,7 +292,7 @@ async function sendToRudder(batch, { global, jobs }) {
             sentAt: new Date().toISOString(),
         }
         console.log(`Inside send to rudder batchi-id ${batch.batchId}`)
-        await fetch(global.dataPlaneUrl, {
+        const res = await fetch(global.dataPlaneUrl, {
             headers: {
                 'Content-Type': 'application/json',
                 ...global.rudderAuthHeader.headers,
